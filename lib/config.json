@@ -1,4 +1,5 @@
 {
-    "DOMAIN": "https://gyi.advantage.services/sunseeker-yachts/",
-    "EXPORTS": ["TXT"]
+    "DOMAIN": "",
+    "EXPORTS": [""],
+    "RECURSE": false
 }

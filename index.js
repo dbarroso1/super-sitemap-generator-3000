@@ -14,7 +14,9 @@ const rl = readline.createInterface({
 const export_list = ['XML', 'TXT']
 
 /* THE DOMAIN TO CRAWL THROUGH */
-const DOMAIN = options.DOMAIN;
+var DOMAIN = options.DOMAIN;
+var EXPORT = options.EXPORTS;
+var RECURSE = options.RECURSE;
 
 var link_table = [];
 var pass = 0;
@@ -28,27 +30,31 @@ export_question();
 function export_question() {
     return new Promise(done => {
         rl.question(chalk.blue('[SSG]: ') + chalk.cyan("URL: "), function(url) {
-            options.DOMAIN = url;
-            logIt(chalk.green("URL HAS BEEN SET"))
+            DOMAIN = url;
+            logIt(chalk.green("URL HAS BEEN SET: ") + chalk.cyan(DOMAIN))
             rl.question(chalk.blue('[SSG]: ') + chalk.cyan("EXPORT AS (XML, TXT): "), function(name) {
-                var valid_export = export_list.find(x => x === name)
+                var valid_export = export_list.find(x => x === name.toUpperCase())
                 if (valid_export) {
-                    options.EXPORTS = [name];
-                    initCrawler();
+                    EXPORT = [name.toUpperCase()];
+                    logIt(chalk.green("EXPORT TYPE HAS BEEN SET: ") + chalk.cyan(name.toUpperCase()));
                 } else {
-                    logIt(chalk.yellow('WARNING: INVALID EXPORT TYPE'))
-                    export_question()
-                }
-            })
+                    logIt(chalk.yellow('WARNING: INVALID EXPORT TYPE'));
+                    return export_question();
+                };
+                rl.question(chalk.blue('[SSG]: ') + chalk.cyan('DO YOU WANT TO RECURSIVLY SEARCH THIS SITE (y/n): '), function(loop) {
+                    var can_loop = loop.toUpperCase() === "Y" ? true : false;
+                    initCrawler(can_loop);
+                });
+            });
 
         });
     })
 };
 
-function initCrawler() {
+function initCrawler(loop) {
     logIt(chalk.green('SITE CRAWLER HAS STARTED . . .'));
-    console.log(chalk.blue("==================================="));
-    fetchData(DOMAIN).then((res) => parseData(res));
+    console.log(chalk.blue("|==================================="));
+    fetchData(DOMAIN, loop).then((res) => parseData(res));
 };
 
 async function parseData(res) {
@@ -67,7 +73,7 @@ async function parseData(res) {
         if (index === anchor_table.length - 1) {
             link_table.sort(function(a, b) { return a.length - b.length; });
             logIt('TOTAL OF ' + chalk.green(link_table.length) + " LINKS FOUND")
-            options.EXPORTS.forEach(exp => {
+            EXPORT.forEach(exp => {
                 switch (exp) {
                     case 'XML':
                         exporter.export_to_xml(site_title, link_table);
@@ -86,16 +92,17 @@ async function parseData(res) {
 
         }
     });
-}
-async function fetchData(url) {
+};
+
+async function fetchData(url, loop) {
     pass++
     var crawl = ora(`CRAWLING: ${chalk.yellow(url)}`).start();
     let response = await axios(url).catch((err) => console.log(err));
     if (response.status !== 200) { crawl.fail(`ERROR FETCHING WEBPAGE`); return; } else { crawl.succeed(`DONE CRAWLING`) }
-    console.log(chalk.blue("==================================="));
-
+    console.log(chalk.blue("|==================================="));
+    if (loop) { logIt("SEARCHING ALL LINKS COLLECTED") }
     return response;
-}
+};
 
 rl.on("close", function() {
     console.log(chalk.blue("/====================================================/"));
